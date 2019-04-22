@@ -1,0 +1,776 @@
+---
+title: Factor analysis and Linear Regression - the importance of the joint applicability of two data analysis techniques.
+author: 
+  - name: Fernando Henrique Casalunga
+    email: fernandocasalunga@gmail.com
+    affiliation: Federal University of Pernambuco
+    footnote: CASALUNGA, F. H.
+address:
+  - code: Federal University of Pernambuco
+    address: Department of Political Science (UFPE)
+    
+
+journal: ""
+date: "`r Sys.Date()`"
+output: rticles::elsevier_article
+
+
+references:
+- id: Figueiredo1
+  title: What to do and what do not do with regression - assumptions and applications of the linear least squares (OLS) models.
+  author: 
+  - family: FIGUEIREDO
+    given: Dalson
+  container - title: Politica Hoje
+  Volume: 20
+  issue: 1
+  publisher:
+  type: article-journal
+  issued:
+    year: 2011
+
+- id: Figueiredo2
+  title: Guaranteed Factor Analysis or Your Money Back - An Introduction to Data Reduction.
+  author: 
+  - family: FIGUEIREDO
+    given: Dalson
+  container - title: Revista Eletronica de Ciencia Politica
+  Volume: 5
+  issue: 2
+  publisher:
+  type: article-journal
+  issued:
+    year: 2014
+
+
+abstract: |
+  This article uses quantitative exploratory methodology to analyze the 'Quality of Government Institute' Basic Dataset (2016). It presents in a didactic way the importance of the joint applicability of two techniques of data analysis, factorial and regression, varying the number of cases, for the construction of multivariate covariational models. It's divided into three sections, the first presents step by step the construction of the index of democratic inclusion (IDI), composed of two latent variables called institutional efficiency and ethnic-linguistic plurality transformed using the technique of factorial analysis; in the second section, constructed factorial indicators are used as independent variables in two models of Multivariate Linear Regression (OLS), finally, the third section, verifies the robustness of the models and presents a brief concluding discussion.
+  This article contributes to the field of multivariate models applied to the social sciences by indicating how the combination of these two techniques can help to identify robustly the independent causal effects that affect a certain phenomenon of interest of the researcher, in this case Civil Liberty in the contemporary states. In this sense, we stated that the more robust the model applied, the greater the validity of the causal inference that is intended to establish.
+  
+---
+
+Introduction
+============
+
+```{r library, echo=FALSE, message=FALSE, warning=FALSE} 
+
+# Access to library
+if(require(stargazer) == F) install.packages('stargazer'); require(stargazer)
+if(require(readr) == F) install.packages('readr'); require(readr)
+if(require(ggplot2) == F) install.packages('ggplot2'); require(ggplot2)
+if(require(car) == F) install.packages('car'); require(car)
+if(require(MASS) == F) install.packages('MASS'); require(MASS)
+if(require(xtable) == F) install.packages('xtable'); require(xtable)
+if(require(lmtest) == F) install.packages('lmtest'); require(lmtest)
+if(require(tidyverse) == F) install.packages('tidyverse'); require(tidyverse)
+if(require(foreign) == F) install.packages('foreign'); require(foreign)
+if(require(FactoMineR) == F) install.packages('FactoMiner'); require(FactoMineR)
+if(require(stats) == F) install.packages('stats'); require(stats)
+if(require(reshape2) == F) install.packages('reshape2'); require(reshape2)
+if(require(zoo) == F) install.packages('zoo'); require(zoo)
+if(require(knitr) == F) install.packages('knitr'); require(knitr)
+if(require(xtable) == F) install.packages('xtable'); require(xtable)
+
+# Importing data base into .csv format - correlation matrix - fh_cl
+library(readr)
+analysis_data_c <- read_delim("analysis_data_c.csv", 
+                            ";", escape_double = FALSE, trim_ws = TRUE)
+
+
+# Importing database into .csv format - template 1
+library(readr)
+analysis_data <- read_delim("analysis_data.csv", 
+                            ";", escape_double = FALSE, trim_ws = TRUE)
+
+# Importing database into .csv format - template 2
+library(readr)
+analysis_data_2 <- read_delim("analysis_data_2.csv", 
+                              ";", escape_double = FALSE, trim_ws = TRUE)
+
+```
+
+
+```{r base, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
+
+# Rename correlation matrix eiu_cl
+colnames(analysis_data_c) <- c("Civil Liberty", "Confidence in Government",
+                             "Favoritism in decisions of government officials",
+                             "Accountability", "Control of Corruption", 
+                             "Ethical behavior of firms", "Property rights", 
+                             "Political Stability", "Functioning of government",
+                             "Cultural Diversity", 
+                             "Ethnic Fractionalization", "Language Fractionalization")
+
+#===========
+# Rename database variables model 1
+colnames(analysis_data) <- c("Civil Liberty", "Confidence in Government",
+                             "Favoritism in decisions of government officials",
+                             "Accountability", "Control of Corruption", 
+                             "Ethical behavior of firms", "Property rights", 
+                             "Political Stability", "Functioning of government",
+                             "Cultural Diversity", 
+                             "Ethnic Fractionalization", "Language Fractionalization", 
+                             "Institucional Efficiency", "Ethnic_linguistic Plurality")
+
+#============
+# Rename database variables model 2 
+colnames(analysis_data_2) <- c("Civil Liberty",
+                             "Favoritism in decisions of government officials",
+                             "Accountability", "Control of Corruption", 
+                             "Ethical behavior of firms", "Property rights", 
+                             "Political Stability", "Functioning of government",
+                             "Cultural Diversity", 
+                             "Ethnic Fractionalization", "Language Fractionalization", 
+                             "Institucional Efficiency", "Ethnic_linguistic Plurality")
+
+
+```
+
+```{r savedataset, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
+
+#=============================
+# Save correlation matrix database Civil Liberty 
+write.table(analysis_data_c, "analysis_data_c.csv", sep = ";", row.names = F)
+
+# Save database models 1 and 2 with renamed variables
+# model 1
+write.table(analysis_data, "analysis_data.csv", sep = ";", row.names = F)
+
+# model 2
+write.table(analysis_data_2, "analysis_data_2.csv", sep = ";", row.names = F)
+
+```
+
+The article explores the data from the "Quality of Government Institute" Basic Dataset (2016) [^1] based on the research design, I used two techniques of quantitative data analysis, factorial analysis and the regression of ordinary least squares (OLS) [^2] to measure the effect of some independent variables that I believe can explain how the phenomenon of civil liberty in contemporary states behaves.
+
+[^1]: The Quality of Government Basic Dataset, version Jan16. University of Gothenburg: The Quality of Government Institute. Available in http: // www.qog.pol.gu.sedoi:10.18157/QoGBasJan16>. Acess in 20.12.2018.
+
+[^2]: For a deeper understanding of the assumptions of the techniques used see also: "Factorial Analysis: An Introduction to Data Reduction" rev. eletronica de Ciencia Politica V. 5, n.2 (2014); "What to do with regression: assumptions and applications of the linear model (OLS)" rev. eletronica Politica Hoje, vol. 20, n.1 (2011).
+
+Thus, in this article, I try to demonstrate the importance of the joint applicability of two data analysis techniques that are very important for Political Science students who seek to use increasingly sophisticated explanatory models in their explanations of observable phenomena. In this sense, the models created aim to identify the effect of eleven independent variables -Confidence in Government, Favoritism in Public Officials, Decisions, Accountability, Corruption Control, Ethical Business Behavior, Property Rights, Political Stability, Government Functioning, Cultural Diversity, Ethnic, Language Fractionation- on the variation of Civil Liberty on contemporary states.
+
+That way, the article is divided into three sections, in the first I show an initial model (model zero) in which I place all the independent variables cited above together in order to verify individually the effects of each one on the civil liberty, in sequence I select those variables who are highly correlated with each other to construct two latent variables that condense most of the relevant information concerning of the selected variables. In doing so, I present step by step the construction of the democratic inclusiveness index (IDI), which is composed of the two latent variables [^3] named institutional efficiency and ethnic-linguistic plurality transformed using the technique of factorial analysis; in the second section, I use the two factorial indicators that make up the construct as independent variables in two models of multivariate linear regression (OLS), in which I've had addeed more two variables that I believed can exert an intervening effect on our variable of interest, civil liberty and summarizes the results of the two models; and in the third section I test the robustness of the models performed regarding the assumptions of OLS models and present a brief conclusive discussion.
+
+[^3]: Definition of latent variable: corresponds to a variable that contains several variables that theoretically make up the created factor, the way in which it is possible to measure a certain phenomenon of interest @Figueiredo2.
+
+Regarding sample size, during the variables measurement planning, two models were chosen, in the first model I used a larger sample (N = 127) and in the second one a smaller sample (N = 51). For the purpose of comparison, I analyzed the results identified in each of these models according to ten assumptions of the regression models indicated by @Figueiredo1, to present the one that best fits the explanation of our phenomena of interest, Civil Liberty.
+
+In this study, the unit of analysis were states, or countries, model 1 have information for 51 of them, while model 2 have 127 observations. These models differ according to the variation in omitted cases, which occurs due to the absence of data for one of our tested independent variables 'government confidence' which is measured by opinion polls conducted by World Values Surveys only in 76 countries of the dataset. Furthermore, in these models the dependent variable civil liberty is discrete - with values varying from 1 to 10, where 1 represents the value assigned to countries with lower levels of civil liberty and 10 those with the highest levels.
+
+About the transparency and replicability of this study, all statistical analyzes were performed with the aid of RStudio software [^4] to analyze statistical data and RMarkdown [^5] for documentation, computational routines were duly reported through the organization of the TIER protocol [^6] and versioning was done with Github platform [^7], the data and codes for replication of the results were made available in the Dataverse repository of Harvard University. We also chose to prioritize the presentation of the viability of the constructs and the results of the models through a graphical interface, because we believe it facilitates the readers comprehension, in this sense all the tables follow attached.
+
+[^4]: RSTUDIO, version 1.1.463. Available in <https://www.rstudio.com/products/>. Acess in 15.12.2018.
+[^5]: RMarkdown, version 1.11. Availabe in <https://rmarkdown.rstudio.com/>. Acess in 15.12.2018.
+[^6]: The TIER Documentation Protocol provides instructions for assembling a set of electronic files that document all the steps of data processing and analysis you conduct for an empirical research paper. Dispon?vel em <https://www.haverford.edu/project-tier/protocol-v2>. Acess in 16.07.2018
+[^7]: GitHub. Available in <https://github.com/casalungafh/artigo_ad_casalunga_fernando>. Acess in 10.01.2019.
+
+Sections
+===============
+
+## Section 1: From a full model to a Transformation of independent parameters into latent variables.
+
+The analysis of this study follows an exploratory pattern of data, a technique recommended for beginner researches, according to this perspective, the following variables -Confidence in Government, Favoritism in Public Officials Decisions, Accountability, Corruption Control, Ethical Business Behavior, Property Rights, Political Stability, Government Functioning, Cultural Diversity, Ethnic, Language Fractionation- were identified as potentially important to explain the variation in the Civil Liberty indicators of the countries on QoG 2016 basic dataset.These variables were placed in an initial linear regression model called the model zero in which it is possible to observe the individual effect of each of them on the variation of our interest dependent variable.
+
+The basic structure of a linear regression model is given by the average variation of a dependent variable ($Y$) according to the average variation of the other independent variables. The literature shows that in order to use the ordinary least squares (OLS) model, the researcher must comply with a series of recommendations that help increase the validity and reliability of the results, attention to the assumptions of the models is crucial, since the analysis of regression has become the most commonly statistical model employed in contemporary political science [@Figueiredo1: p. 46].
+
+The ten recommendations of the MQO models follow in the wake of the Lewis-Beck (1980) and Kennedy (2009) postulates, the first one says that the relationship between the dependent variable and the independent variables must be linear, the second prevents against measurement errors of the variables, the third proposes that the mean of the error term should be equal to zero, the fourth that the error term be constant according to the distribution of the values of the independent variable, the fifth that there should be no autocorrelation between the error terms, the sixth that the independent variable should not be correlated with the error term, the seventh that no relevant variable to explain ($Y$) was excluded from the model, the eighth that there is no high correlation between the independent variables, the ninth that the distribution of the error is normal, and the tenth one has an adequate proportion between number of cases and estimated parameters [@Figueiredo1: p. 52].
+
+Specifically, in regression models the dependent variable ($Y$) represents the phenomenon we seek to understand, explain or predict. The constant, ($\alpha$), represents the best estimate of ($Y$) in the absence of independent variables. The independent variables in model zero are represented by $X1 ... + X11$, the coefficients ($\beta$) represent the average variation observed in ($Y$) when a certain independent variable is raised in one unit, keeping the others constant. For example, ($X1$) represents the variation observed in ($Y$) by raising ($X1$) in one unit, keeping the remaining variables constant. The model error, ($\epsilon$), represents all that can affect ($Y$), but can not be explained by the model. To fix the interpretation, I chose to present the equation of the mathematical model:
+
+$Y = \alpha + \beta_1 x + \beta_2 x2 + \beta_3 x3 + \beta_4 x4 + \beta_5 x5 + \beta_6 x6+ \beta_7 x7+ \beta_8 x8+ \beta_9 x9+ \beta_10 x10+ \beta_11 x11 + \epsilon$ 
+
+
+In appendix 1 the Table 1 presents the summary of the multivariate regression model zero applied to the study of civil liberty in the countries of the QOG database (2016), there we can observe the degree of explanation of this model through the $R2-adjusted$. The table summarizes the results of the F statistical tests, the $p-value$, the degrees of freedom and the standard deviation of the models. The standard error is a measure of variability of the estimate, that is, the smaller the standard error, the more accurate the estimate is, so if the standard error is too large, the estimate will not be significant. It's important to note that on linear multivariated regression models the degree of validity of the inference production depends on those tests of significance. From the analysis of the model zero it was identified a great explanatory power representing that the chosen independent variables can explain 84% of the 51 cases ($R2-adjusted = 0.848$) when we use Civil Liberty as a discrete dependent variable.
+
+However the regression table shows in an overly technical way the results of the models. For this reason, it's recommended to the researcher to use a graphical interface for present the results, the graphs are an excellent tool wich can helps the reader to achieve a more direct and intelligible understanding of the results of the model. This is particularly true because, in short, when we use graphs to represent the findings of a study in a clear and objective way, we make it easier to identify the significant variables through the size of their respective confidence intervals. In the case of model zero, as we can see in graphic 1, the coefficients of the following variables were statistically significant: Confidence in Government, Accountability, Functioning of Government  ($p-value <0.1$) and Political Stability ($p-value <0.5$), note that the confidence interval of these variables does not touch ground zero.
+
+```{r analyze1, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
+
+# Multivariate Regression model zero - without latent variables - 
+model_0 <- lm(`Civil Liberty` ~ `Confidence in Government` +
+                             `Favoritism in decisions of government officials` +
+                             `Accountability` + `Control of Corruption` + 
+                             `Ethical behavior of firms` + `Property rights` + 
+                             `Political Stability` + `Functioning of government` +
+                             `Cultural Diversity` + 
+                             `Ethnic Fractionalization` + `Language Fractionalization`,
+               data = analysis_data_c)
+
+# Graph for the representation of the confidence intervals of the estimated coefficients - model zero -
+
+par(mfrow=c(1,1))
+betas <- coefficients(model_0) 
+IC <-  confint(model_0, level=0.95) 
+
+y.axis <- seq(from=1, to=length(betas))
+plot(betas, y.axis, type="p", pch=19, xlab="Magnitude of Coefficients", ylab="", 
+     axes=F, xlim=c(min(IC-.4), max(IC+.4)), ylim=c(min(y.axis-.2), max(y.axis+.2)), 
+     cex=1,yaxs="i",xaxs="i", main="Graph 1. Confidence Intervals Model 1")
+segments(IC[,1], y.axis, IC[,2], y.axis)
+axis(1, at=seq(round(min(IC-.9)), round(max(IC+.9)), by=0.1), 
+     labels=seq(round(min(IC-.9)), round(max(IC+.9)), by=0.1), tick=T, cex.axis=1, 
+     mgp=c(2,.7,0))
+axis(2, at=y.axis, label=names(betas), las=1, tick=T, line=-.5, cex.axis=1, 
+     mgp=c(2,.7,0))
+abline(v=0, lty=2, col="red")
+
+```
+
+But how can we be sure that our estimates of the statistical significance of the effects measured by independent variables are indeed reliable? In fact, can we say that the other independent variables have no significant effect on civil liberty? To answer these questions we need to be sure that our model does not violate the assumptions presented by the literature for the use of linear multivariated regression models. But first, to meet our main research goal, demonstrate the joint applicability of two techniques of quantitative analysis applied to OLS models, we will focus on the issue of the independent variables of model zero with special attention to the hypothesis number eight of OLS models that discusses the question of multicollinearity among the model variables.
+
+Regarding the assumptions for application of the linear regression model cited above, the eighth indication is salutary in informing that we should not use highly correlated variables, so called multicollinearity occurs when high levels of correlation are observed between more than two independent variables, their main effect is to affect the efficiency of the estimates, in this case, we tend to overestimate the magnitude of the standard errors of the regression coefficients, which end up impairing the reliability of the significance tests ($p-value$) and confidence intervals [@Figueiredo1].
+
+In model zero the following multicollinear variables were identified: X1) control of corruption; X2) ethical behavior of firms; X3) property rights; X4) political stability; X5) government functioning; X6) cultural diversity; X7) ethnic fractionalization; and X8) linguistic fractionalization. Due to the high degree of correlation between these variables, it is advisable to transform its main components into latent variables, composed of the main information present in each of them in a synthetic way, the technique used to carry out the transformation is called factorial analysis [^8], and will be developed below.
+
+[^8]: Factor analysis as a data reduction technique is used to construct indexes that synthesize information from a large number of variables into a smaller number of factors / components. The correlation pattern observed among the original variables is condensed into a single variable that contains the factors in common between them @Figueiredo1.
+
+Thus, factor construction depends on the level of correlation between the selected independent variables. This is because the factorial analysis uses the common variance between the correlated variables ($X1, X2, X3 ... X8$) to construct a factorial indicator that contain information of all the observed variables divided into latent factors, so with this technique we estimate linear combinations of the original variables from the variance in the correlation pattern between the variables.
+
+In respect to the correlation between the independent variables that compose the factors that will be constructed, the literature recommends that most of the coefficients be higher than ($R \ge 0.300$), regardless of the signal, in this sense, "the higher the level of correlation between the the most appropriate variables will be the different techniques of data reduction "(TABACHNICK and FIDELL, (2007), apud [@Figueiredo2: p. 190]. [^9] 
+
+The graphic 2 represents the high correlation pattern among the variables, indicating that the matrix of data is adequate to the use of factorial analysis.
+
+[^9]:In the planning of factorial analysis, the literature indicates that the following stages are observed: a) definition of the theoretical dimension of the latent variable; b) identification of observed variables caused by the latent variable, c) data collection; d) computational transformation; e) discussion of the results [@Figueiredo2: p. 187].
+
+
+```{r analyze2, echo=FALSE, message=FALSE, warning=FALSE, results='hide'} 
+
+# Generate correlation matrix - model 1
+cormat <- cor(analysis_data_c[, -c(1:4)])
+melted_cormat <- melt(cormat)
+
+# Correlation matrix graph - model 1
+ggplot(data = melted_cormat,
+       aes(x=`Var1`, y=`Var2`, fill=value)) +
+  labs(title = "Graph 2. Correlation Matrix", caption = "Based on Basic Dataset from QoG (2016)") + theme(axis.text.x = element_text(angle = 90, hjust=0)) +
+  geom_tile()
+
+```
+
+On appendix, the descriptive statistics of the independent variables ($X1... + X8$) used to compose the factors are presented in detail, tables 2 and 3 present the indicators that were used in the construction of the factorial indicators 'Institutional Efficiency' (factor 1) and 'Ethnic-linguistic Plurality' (factor 2).
+
+Tables 4 and 5 present, respectively, the adequacy statistics of the sample and the communalities. At Table 4 we have the adjusted Kaiser-Meyer-Olkin (KMO) statistic that indicates the proportion of the variance attributed to the factors that will be transformed, the indicator varies from 0 to 1, the higher the assumed value, the more accurate is the result of the analysis factorial. In our analysis the ($KMO = 0.860$) indicates that we can proceed with the application of the technique.
+
+Graphic 3 shows the total variance of each factor that will be transformed, the variability of the variables and the accumulated percentage of each variable extracted for the construction of the factors. In graphic 3 the information is in a scree plot. Objectively, both of them indicate the amount of factors that should be extracted; the dashed line represents the cutting line of Kaiser rule; and, the abrupt drop signals a transformation on the independent variables into two constructs.
+
+```{r analyze3, echo=FALSE, message=FALSE, warning=FALSE, results='hide'}
+
+# Factorial Analysis (PCA)
+#=======================================
+# Model 1
+pca1 <- princomp(analysis_data[, -c(1:4)], scores=TRUE, cor=TRUE)
+# Sumario do PCA
+summary(pca1)
+
+# Loading main Components
+loadings(pca1)
+
+par(mfrow=c(1,2))
+
+# Checking how many factors should we use
+plot(pca1, main="Graph 3. Factors") # cotovelo em 2 fatores
+
+# Selecting the 2 factors - template 1
+analysis_data$fac1 <- pca1$scores[,1]
+analysis_data$fac2 <- pca1$scores[,2]
+
+# Scree plot of eigenvalues
+screeplot(pca1, type="line", main="Graph 4. Scree Plot")
+abline(1,0, lty=2)
+
+```
+
+Note that because of the high degree of correlation between eight independent variables of model zero it is possible to extract two components that carry the main information from them, so the next step is to produce a rotated component matrix. The rotation seeks to facilitate the interpretation of the observed solution without changing its original mathematical properties (TABACHNICK and FIDELL, (2007), apud, [@Figueiredo2: p. 191], the orthogonal rotation assumes that the correlation between the dimensions is zero, indicating that they are statistically independent (orthogonal).
+
+```{r analyze4, echo=FALSE, message=FALSE, warning=FALSE, results='hide'}
+
+# Rotation varimax (pca1 $ rotation)
+# Factor analysis 
+fatorial_varimax <- factanal(analysis_data[, -c(1:4,13:16)],factors=2, rotation="varimax", scores="regression")
+
+```
+
+When applying the technique of factorial analysis we determine the type of rotation (orthogonal varimax), and the amount of factors that must be extracted, in this case, two. Thus, the two factors that will be constructed will be composed of two components, the first representing 51% and the second 28% of the total variance of the independent variables. Together they add up to 80% of the total information of the eight independent variables. 
+
+In appendix, table 6 summarizes the results of the accumulated variance, table 7 present the rotational component matrix of the two components, the uniqueness of the variables, the degree of freedom and the chi-square test of the factorial analysis and table 8 shows the average variation of the factors created, 'Institutional Efficiency' and 'Plurality Ethnic-linguistic' databases containing information for 127 countries in the QOG basic dataset.
+
+In possession of the transformed factors they become a index that we call Inclusive Democracy Index (IDI). To better identify the operationalization of these factors, we represent through a graphical interface the dispersion of all the countries of our database according to the two latent variables transformed.
+
+
+```{r analyze5, echo=FALSE, message=FALSE, warning=FALSE, results='hide'}
+
+# Descriptive of factors 1 and 2
+summary(analysis_data$`Institucional Efficiency`)
+summary(analysis_data$`Ethnic_linguistic Plurality`)
+
+ggplot(analysis_data, aes(x = `Ethnic_linguistic Plurality`, y = `Institucional Efficiency`)) +
+  geom_point() +
+  geom_vline(xintercept = 0, size =1, linetype = "dashed") +
+  geom_hline(yintercept = 0, size =1, linetype = "dashed") +
+  labs(x = "Ethnic_linguistic Plurality", y = "Institutional Efficiency", 
+       title = "Graph 5. Index of inclusive Democracy", caption = "Based on Basic Dataset from QoG (2016)")
+ 
+  
+```
+
+
+```{r analyze25, eval=FALSE, echo=FALSE}
+
+ggplot(analysis_data, aes(x = Institucional Efficiency, y = Ethnic-linguistic Plurality)) +
+  geom_point()+
+  geom_text(aes(label = analysis_data$NOMEDOPAIS)) +
+geom_smooth(method='lm')
+
+```
+
+In this sense, we can perform the analysis units by quadrant. At the first quadrant are those countries with high institutional efficiency and ethnic-linguistic plurality; at the second one are those with high institutional efficiency but low ethnic-linguistic plurality. In a similar mode, at the third quadrant are those countries with low institutional efficiency and ethnic-linguistic plurality; and, at the forth quadrant are those with high ethnic-linguistic plurality but low institutional efficiency; 
+
+It is worth stressing here the importance of the use of the factorial analysis technique, observing that without it it would not be possible to reduce the dimensionality of the data, by transforming highly correlated independent variables into latent constructs that carry the condensed information of the original variables, the researcher can circumvent the problem of multicollinearity and thus build more robust models that contain a large amount of information. 
+
+Regarding the purpose of this study, demonstrate the importance of the joint applicability of the techniques of factorial analysis and linear regression, on the next section, in the wake of @Figueiredo1, I will emphasize the importance of combining those techniques [@Figueiredo1: p 56] using the two factors transformed in this section as independent variables in two OLS models, in order to measure the effects produced on our variable of interest, Civil Liberty, in the countries of the QOG database (2016).[^10]. 
+
+[^10]: The Quality of Government Institute. QoG Basic Cross-Section Datase. Availble in <https://qog.pol.gu.se/data/datadownloads/data-archive>. Acess in 05.12.2018.
+
+
+## Section 2 - Using Multivariate Linear Regression Models (MQO) with latent variables.
+
+In this section I present two models of Multivariate Linear Regression (OLS) summarizing the results based on the assumptions indicated by the literature [@Figueiredo1; @Figueiredo2].
+
+The applied models seek, therefore, to understand the causal effect on the Civil Liberty produced by the variation of five independent variables -Public confidence in government, Favoritism in official government decisions, Accountability, Institutional efficiency and Ethnic-linguistic Plurality, note that the last two are the latent variables produced in section 1 of this article.
+
+Thus, the hypotheses that will be tested with the multivariate models are listed below, our objective is to observe which of these independent variables have a significant effect on Civil Liberties and the magnitude of this effect. Therefore, I postulate:
+
+H0: If the null hypothesis was irrefutable, this would indicate that there is no significant relation between Public Confidence in government ($X1$); favoritism in government decisions ($X2$); accountability ($X3$); Institutional Efficiency ($X4$); Ethnic Linguistic Plurality ($X5$) and civil liberty ($Y$), that is, null hypotheses indicate that the effect is null ($\beta = 0$)
+
+Ha: If the null hypothesis was refutable, this would indicates that there is a significant relationship between ($X1... + X5$) and $Y$, that is, alternative hypotheses indicate that the effect is positive ($\beta \neq 0$).
+
+However, in these models, the interpretation of the hypothesis tests of ($X2$) will be a litle different from the others, because we expect a negative effect for this variable in our dependent variable, that is, the greater the favoritism in government decisions the lower the degree of civil liberty in that country ($\beta <0$).
+
+In addition to the problems related to the multicollinear independent variables, it should also be noted that, regarding with the tenth assumption of the OLS models the use of small samples can also affect our results. For this reason, it's recommended that the researcher elaborates models capable of minimizing the information of the variables and maximizing the number of observations, attention to these procedures helps to increase the degree of reliability and the chance of generalization of the results. Thus, to test that assumption I will vary the number of cases in two models, the first one will have 51 and the second 127 cases. 
+
+At the appendix 2, we can see table 9 that summarizes the descriptive statistics of the independent variables, and table 11 which presents the summary of the results of the three OLS models applied here to the study of Civil Liberty in the countries of the QOG Basic dataset (2016), with values of $R2-adjusted$, $F statistical tests$, the $p-value$, the degrees of freedom and the standard deviation of the models. 
+
+In order to interpret the results of these models, it's important taken into account that the indicator of the dependent variable is discrete, so that countries with greater Civil Liberty receive the maximum value of 10, while those with less freedom receive an value equal to 1. From the analysis of the models it was identified that the model 1 with 51 cases has the explanatory power of 71% ($R2-adjusted = 0.711$) while model 2 with 127 cases explains 76% of the cases ($R2-adjusted = 0.763$).
+
+The findings of model 1, indicate that, on average, favoritism increases in official government decisions should result in a reduction of 0.607 points in Civil Liberty ($p-value <.01$), the inverse occurs with variables $X3$, $X4$ and $X5$, as we can see the increase of one unit in the transparency of public accounts (accountability) has a positive effect on the dependent variable, it's expected that the variation causes, on average, has an increase of 0.074 in Civil Liberty ($p-value <.01$), institutional efficiency has a positive effect either, so we expected that the variation of one unit in this factor causes, on average, an increase of 0.556 in Civil Liberty ($p-value <.05$), othwerwise ethnic-religious plurality has a positive but not statistically significant effect on civil liberties in this model.
+
+The findings of model 2, with 127 cases, indicate that, on average, favoritism increases in official government decisions produces a reduction of 0.921 points in Civil Liberty ($p-value <.01$), again, we can observe that the reverse occurs with variables $X3$, $X4$ and $X5$, we can note that the increase of one unit in the transparency of public accounts (accountability) has a positive effect on Civil Liberty, and then we expected that, on average, the variation of this variable causes an increase of 0.104 in Civil Liberty ($p-value <.01$), institutional efficiency has a similar effect, on average, it's expected that the variation of one unit in this factor causes an increase of 0.486 on our dependent variable ($p-value <.01$), over again, ethnic linguistic plurality has a positive but not statistically significant effect on Civil liberty in this model.
+
+As can see above, on one hand the results pointed out that in the two models the first latent transformed variable works as expected, thus, we can postulate that institutional efficiency has a significantly causal effect on the Civil Liberty in those countries, however, at the other hand the second latent transformed variable, ethnic-linguistic plurality does not seem to have any significant effect which help us to explain the variation of Civil liberty in those units observed. In a objective clearly way, the follow graphics 5 and 6 represent the statistical significance of the results, the range of the confidence intervals and standard errors.
+
+```{r analyze7, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
+
+# Multivariate Linear Regression Model 1
+model_1 <- lm(`Civil Liberty` ~ `Confidence in Government` +
+                 `Favoritism in decisions of government officials` + 
+                 `Accountability` + 
+                 `Institucional Efficiency` + 
+                 `Ethnic_linguistic Plurality`, 
+               data = analysis_data)
+
+#==============
+# Multivariate Linear Regression Model 2 - drop Confidence in Government
+model_2 <- lm(`Civil Liberty` ~  +
+                 `Favoritism in decisions of government officials` + 
+                 `Accountability` + 
+                 `Institucional Efficiency` + 
+                 `Ethnic_linguistic Plurality` , 
+               data = analysis_data_2)
+
+#==========
+# Graph for the representation of the confidence intervals of the estimated coefficients - model 1
+par(mfrow=c(1,1))
+betas <- coefficients(model_1) 
+IC <-  confint(model_1, level=0.95) 
+y.axis <- seq(from=1, to=length(betas))
+plot(betas, y.axis, type="p", pch=19, xlab="Magnitude of Coefficients", ylab="", 
+     axes=F, xlim=c(min(IC-.4), max(IC+.4)), ylim=c(min(y.axis-.2), max(y.axis+.2)), 
+     cex=1,yaxs="i",xaxs="i", main="Graph 6. Confidence Intervals Model 1")
+segments(IC[,1], y.axis, IC[,2], y.axis)
+axis(1, at=seq(round(min(IC-.9)), round(max(IC+.9)), by=0.1), 
+     labels=seq(round(min(IC-.9)), round(max(IC+.9)), by=0.1), tick=T, cex.axis=1, 
+     mgp=c(2,.7,0))
+axis(2, at=y.axis, label=names(betas), las=1, tick=T, line=-.5, cex.axis=1, 
+     mgp=c(2,.7,0))
+abline(v=0, lty=2, col="red")
+
+#==========
+# Graph for the representation of the confidence intervals of the estimated coefficients - model 2
+par(mfrow=c(1,1))
+betas <- coefficients(model_2) 
+IC <-  confint(model_1, level=0.95) 
+y.axis <- seq(from=1, to=length(betas))
+plot(betas, y.axis, type="p", pch=19, xlab="Magnitude of Coefficients", ylab="", 
+     axes=F, xlim=c(min(IC-.4), max(IC+.4)), ylim=c(min(y.axis-.2), max(y.axis+.2)), 
+     cex=1,yaxs="i",xaxs="i", main="Graph 7. Confidence Intervals Model 2")
+segments(IC[,1], y.axis, IC[,2], y.axis)
+axis(1, at=seq(round(min(IC-.9)), round(max(IC+.9)), by=0.1), 
+     labels=seq(round(min(IC-.9)), round(max(IC+.9)), by=0.1), tick=T, cex.axis=1, 
+     mgp=c(2,.7,0))
+axis(2, at=y.axis, label=names(betas), las=1, tick=T, line=-.5, cex.axis=1, 
+     mgp=c(2,.7,0))
+abline(v=0, lty=2, col="red")
+
+
+```
+
+Taking into account of our findings, at first glance we may be led to assume that model 2 that presents the highest degree of explanation of the cases in our data matrix is the one that best explains the variation of the phenomenon of Civil Liberty in our units. However, in the next section, I discuss the robustness of the two models against the ten assumptions of the regression models to know if it's possible to confirm or not these expectations regarding model 2 in comparison to model 1.
+
+
+## Section 3 Discussion and Conclusion
+
+In this section, regarding the ten assumptions of multivariate regression models (OLS) cited in section 1, I tested the robustness of the two models performed in section 2. Therefore, since we use secondary data extracted from the Quality of Government Institute (QOG) repository, we assume that the first, second and third assumptions of the regression models indicate, respectively, the linear relationship between the independent parameters and the dependent variable, the importance of the absence of measurement errors in the variables and the importance of the mean value of the error term to be equal to zero were satisfied in our two models, which guarantees the reliability and validity of the parameters used, as well as the consistency of the tests of statistical significance applied.
+
+As for the other assumptions, we can identified that both models satisfy the fourth assumption which claim that the difference between the observed and predicted results by the model should vary uniformly [@Figueiredo1: p. 54]. On the following graphics 7 and 8, I present the homoscedasticity tests for the residuals distribution of these models.
+
+```{r analyze8, echo=FALSE, message=FALSE, warning=FALSE, results='hide'}
+
+par(mfrow=c(1,2))
+### Evaluating homoscedasticity ###
+# Residual analysis of multivariate linear regression model 1
+analysis_data$Predicted <- predict(model_1)
+analysis_data$Residuo <- analysis_data$`Civil Liberty` - analysis_data$Predicted
+
+# Test of the mean value of the error term equal to zero
+summary(analysis_data$Residuo)
+
+# Scatter plot of standard residues - model 1 
+plot(analysis_data$Predicted, analysis_data$Residuo, pch=21, bg="red", col="red", main="Graph 8. Residual Distribution")
+abline(0,0, lty = 2)
+
+### Evaluating homoscedasticity ###
+# Residual analysis of multivariate linear regression model 2
+analysis_data_2$Predicted <- predict(model_2)
+analysis_data_2$Residuo <- analysis_data_2$`Civil Liberty` - analysis_data_2$Predicted
+
+# Test of the mean value of the error term equal to zero
+summary(analysis_data_2$Residuo)
+
+# Scatter plot of standard residues - model 2
+plot(analysis_data_2$Predicted, analysis_data_2$Residuo, pch=21, bg="red", col="red", main="Graph 9. Residual Distribution")
+abline(0,0, lty = 2)
+
+
+```
+
+According to the fifth assumption of the regression models [@Figueiredo1: p. 56] I tested the absence of autocorrelation between the cases using the Durbin-Watson test indicated by the literature, this test detects the presence of autocorrelation in our data, the indicator varies between 0 and 4, values between 1.5 and 2.5 indicate independence of the observation. In our OLS models, the first one presents ($DWT = 2.14$), and the second ($DWT = 1.84$), so both models satisfy this assumption.
+
+```{r analyze9, echo=FALSE, message=FALSE, warning=FALSE, results='hide'}
+### Test for Collinearity ###
+vif(model_1) # variance inflation factors 
+sqrt(vif(model_1)) > 3
+sqrt(vif(model_1)) < 1
+
+### Test for autocorrelation of errors 
+durbinWatsonTest(model_1)
+
+### Test for non-constant error variance
+ncvTest(model_1)
+
+### Test for Collinearity 
+vif(model_2) # variance inflation factors 
+sqrt(vif(model_2)) > 3
+sqrt(vif(model_2)) < 1
+
+### Test for autocorrelation of errors 
+durbinWatsonTest(model_2)
+
+### Teste para variancia do erro nao constante
+ncvTest(model_2)
+
+```
+
+
+I also tested the correlation between the errors of the two latent transformed variables and the dependent variable, the results indicate that the institutional efficiency errors has a high correlation with our dependent variable (model 1 $R = 0.641$; model 2 $R = 0.645$), for ethnic-linguistic plurality we have a weak correlation (model 1 $R = 0.151$; model 2 $R =0.007$). It's important to note that the results indicated that the observations of the error term of the first latent variable, the only one that is significant in our models, are not linear or independent, when we identify a high correlation between the error terms, we know that the reliability of the tests of significance and confidence intervals for the construct decreases. However, the sixth assumption of regression models is very difficult to equalize, the literature indicates that when we can not manipulate the value of the independent variable, since this is not an experimental study, it is acceptable to choose to violate this assumption by following a a common measure adopted by quasi-experimental projects such as OLS models.
+
+As I show on the following gaphics 9 and 10 the distribution of the error term for each individual-mode component follows the same heteroscedastic pattern, that is, there is a correlation between the error term and the independent variables, with the exception of the latent ethnic-linguistic plurality variable that is close to a homocedastic distribution, however the effect of this variable is not statistically significant.
+
+```{r analyze10, echo=FALSE, message=FALSE, warning=FALSE, results='hide'}
+
+# Model 1
+# Correlation between the dependent variable and the factor 1 - independent variable constructed
+cor(analysis_data$`Civil Liberty`, analysis_data$`Institucional Efficiency`)
+
+# Correlation between the dependent variable and the factor 2 - independent variable constructed
+cor(analysis_data$`Civil Liberty`, analysis_data$`Ethnic_linguistic Plurality`)
+
+# Model 2
+# Correlation between the dependent variable and the factor 1 - independent variable constructed
+cor(analysis_data_2$`Civil Liberty`, analysis_data_2$`Institucional Efficiency`)
+
+# Correlation between the dependent variable and the factor 2 - independent variable constructed
+cor(analysis_data_2$`Civil Liberty`, analysis_data_2$`Ethnic_linguistic Plurality`)
+
+par(mfrow=c(1,2))
+## Non-linearity test
+# component added to waste 
+avPlots(model_1, main="Graph 10. Added-Variable Plots")
+
+## Non-linearity test
+# component added to waste 
+avPlots(model_2, main="Graph 11. Added-Variable Plots")
+
+```
+
+The seventh and eighth assumptions of the regression models that point to possible problems in the estimates due to the inadequate specification of the model, such as the inclusion of theoretically irrelevant independent variables that reduce the efficiency of the estimators, or the multicollinearity between the independent variables and the variable depending on the model that may lead to increased variance in the magnitude of the estimated parameters, were satisfied by both models, we can state this because on those models were included two latent variables as functional mechanisms designed to avoid this bias imposed by possible omitted variables and, at the same time, to condense the information of the highly correlated variables in a single factorial indicator. Here we can see in a objective way the importance of the joint applicability of the two tecniques of data analysis, our main claim in this paper.
+
+As regard to the ninth assumption, about the distribution of the models residuals, to satisfy this we expect that the amount of information about the phenomenon of Civil Liberty that can not be explained by our research design follow a symmetrical distribution. As we can see on graphics 11 and 12 both models passed the test. The histograms show that the values of standardized residues of both OLS models distribute in a perfectly symmetrical way. As we can note, a symmetrical distribution for the values predicted against the standardized residues in both models increases the validity of the inferences made by our two models.
+
+```{r analyze11, echo=FALSE, message=FALSE, warning=FALSE}
+
+par(mfrow=c(1,2))
+### Evaluating waste distribution ###
+# Scatter Histogram of error model 1
+hist(analysis_data$Residuo, freq=FALSE, ylim=c(0,0.4), main="Graph 12. Histogram of std errors")
+xfit <- seq(min(analysis_data$Residuo),max(analysis_data$Residuo),length=40) 
+yfit <- dnorm(xfit) 
+lines(xfit, yfit)
+
+### Evaluating waste distribution ###
+# Scatter Histogram of error model 4
+hist(analysis_data_2$Residuo, freq=FALSE, ylim=c(0,0.4), main="Graph 13. Histogram of std errors")
+xfit <- seq(min(analysis_data_2$Residuo),max(analysis_data_2$Residuo),length=40) 
+yfit <- dnorm(xfit) 
+lines(xfit, yfit)
+
+
+```
+
+Finally, in model 2, we look at the tenth assumption about the Central Limit Theorem that proposes to increase the number of cases against the estimated parameters; in annex 2, table 10 indicates that when we increase the number of cases from 51 in model 1, to 127 in model 2, removing the variable confidence in government, the explanatory power of model 2 when compared to the previous one in terms of adjusted R-adjusted, it's important to note that in this model the favoritism variable in government decisions had a significant effect on Civil Liberty, unlike model 1, where there is no significant effect for this variable, therefore, we can say that the increase in the number of cases had a great influence on the robustness of the model 2 results.
+
+Thus, after perform the robustness tests we are able to indicated that model 1 is in fact inferior to model 2, this difference is given by incresead on number of cases due to the removal of the variable confidence in government. So based on the tests, we identified that model 2 presented the most reliable results using the verified assumptions.
+
+To conclude, as I have showed by the results of the three models presented in this article, the importance of using the techniques of factorial analysis and linear regression to identify the causal effects that produce a certain phenomenon of interest of the researcher is given. In this sense, I reaffirm that the more robust the applied model, the greater the validity of the causal inference that one intends to establish.
+
+
+
+
+---
+
+References {#references .unnumbered}
+
+==========
+
+FIGUEIREDO FILHO, D. B. (2011) What to do and what do not do with regression - assumptions and applications of the linear least squares (OLS) models. Revista Pol?tica Hoje, Vol.20, n.1.
+_____. (2014). Factor analysis and Linear Regression - the importance of the joint applicability of two data analysis techniques. Revista Eletr?nica de Ci?ncia Pol?tica, vol 5, n.2.
+
+FIGUEIREDO FILHO, D. B.; SILVA J?NIOR, J. A. da (2010). Vis?o al?m do alcance:
+uma introdu??o ? an?lise fatorial. Opini?o P?blica, v. 16, n. 1, p. 160-185.
+
+FIGUEIREDO FILHO, D. B.; PARANHOS, R.; ROCHA, E. C. da; SILVA Jr., J. A da;
+MAIA, R. (2013). An?lise de componentes principais para constru??o de indicadores sociais. Rev.
+Bras. Biom., S?o Paulo, v.31, n.f1, p.61-78.
+
+PEARSON, Karl (1982). The Grammar of Science. London: J.M. Dent and Sons Ltd
+
+KING, G. (1995). "Replication, Replication." PS: Political Science and Politics, 28: 443-499.
+Available in: <http://gking.harvard.edu/gking/files/replication.pdf>. Acesss in 03.07.2016.
+_______. (1986). "How Not to Lie With Statistics: Avoiding Common Mistakes in Quantitative Political Science." American
+Journal of Political Science, vol 30: 666-687. Availabe in: <http://gking.harvard.edu/files/mist.pdf>. Acess in 03.07.2017.
+
+SCHAWB, A. J. (2007). Eletronic Classroom. Available in:
+<http://www.utexas.edu/ssw/eclassroom/schwab.html> Acess in 22.01.2017.
+
+TABACHNICK, B. and FIDELL, L. (2007). Using multivariate analysis. Needham Heights:
+Allyn & Bacon.
+
+
+Appendix 1
+=============
+
+
+```{r analyze12, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
+
+# Visualization model zero
+stargazer(model_0, type = "text", title = "Table 1 - Model zero Results", style = "ajps", p.auto=FALSE)
+
+```
+
+```{r analyze13, eval=FALSE}
+
+                           Tabel 2 - Indicators 
+
+|          **Factor 1**          |          **Factor 2)**                   
+|:-------------------------------|--------------------------------:| 
+| ** Institutional Efficiency    | Ethnic-linguistic Plurality
+|:-------------------------------|--------------------------------:| 
+| X1 (Corruption Control)        | X6 (Cultural Diversity)         |
+| X2 (Ethic Firms Behavior)      | X7 (Ethnic Fracionalization)    |
+| X3 (Property Rigths)           | X8 (Linguistic Fracionalization)|
+| X4 (Political Stability)       |                                 |
+| X5 (Functioning of government) |                                 |
+|:----------------------------------------------------------------:|
+*Source: By the author (2019)*
+
+```
+
+```{r analyze14, eval=FALSE}
+
+              Tabel 3 - Descriptive Statistics 
+
+|         **Variables**           | **Mean**  |  STD                   
+| ------------------------------- |:---------:|-------:| 
+| X1 (Corruption Control)         |    0.08   |  0.96  |
+| X2 (Ethic Firms Behavior)       |    4.11   |  0.96  |
+| X3 (Property Rigths)            |    4.26   |  1.01  |
+| X4 (Political Stability)        |    -0.06  |  0.98  |
+| X5 (Functioning of government)  |    4.99   |  2.51  |
+| X6 (Cultural Diversity)         |    0.31   |  0.20  |
+| X7 (Ethnic Fracionalization)    |    0.47   |  0.26  |
+| X8 (Linguistic Fracionalization)|    0.39   |  0.28  |
+|:----------------------------------------------------:|
+*Source: By the author (2019)*
+
+```
+
+```{r analyze 15, eval=FALSE}
+
+Tabel 4 - Sample Suitability Tests 
+
+| **Test** | **Value observed** |                   
+| ---------|:------------------:| 
+| **KMO**  |        0.860       |
+| **BTS**  |        36          |
+| **SIG**  |        0.01        |
+|:-----------------------------:| 
+*Source: By the author (2019)*
+
+```
+
+```{r analyze 16, eval=FALSE}
+
+                 Tabel 5 - Communalities 
+
+|                 | **Components**           
+| -------------------------------------------
+|         **Variable**            |  Inicial | **Extracted** |
+|:----------------------------------------------------------:| 
+| X1 (Corruption Control)         |   1.000  |     0.911     |
+| X2 (Ethic Firms Behavior)       |   1.000  |     0.890     |
+| X3 (Property Rigths)            |   1.000  |     0.845     |
+| X4 (Political Stability)        |   1.000  |     0.603     |
+| X5 (Functioning of government)  |   1.000  |     0.665     |
+| X6 (Cultural Diversity)         |   1.000  |     0.843     |
+| X7 (Ethnic Fracionalization)    |   1.000  |     0.829     |
+| X8 (Linguistic Fracionalization)|   1.000  |     0.772     |
+|:----------------------------------------------------------:|
+*Source: By the author (2019)*
+```
+
+
+```{r analyze 17, eval=FALSE}
+
+                            Tabel 6 - Cumulative Variance 
+
+|                                 |**Accumulated Values**  | Square load rotating sums |
+|:------------------------------------------------------------------------------------:|
+|          **Component**          | StD  | Var% | Acmlted% | STD  | Var% | Acmlted%    |
+|:------------------------------------------------------------------------------------:| 
+| X1 (Corruption Control)         | 2.06 | 53   | 53       | 4.64 | 51   | 51          |
+| X2 (Ethic Firms Behavior)       | 1.45 | 26   | 79       | 2.57 | 28   | 80          |
+| X3 (Property Rigths)            | 0.69 | 0.6  | 85       | -    | -    | -           |
+| X4 (Political Stability)        | 0.64 | 0.05 | 90       | -    | -    | -           |
+| X5 (Functioning of government)  | 0.60 | 0.04 | 95       | -    | -    | -           |
+| X6 (Cultural Diversity)         | 0.41 | 0.02 | 97       | -    | -    | -           |
+| X7 (Ethnic Fracionalization)    | 0.35 | 0.01 | 99       | -    | -    | -           |
+| X8 (Linguistic Fracionalization)| 0.22 | 0.01 | 100      | -    | -    | -           |
+|:------------------------------------------------------------------------------------:|
+*Source: By the author (2019)*
+```   
+
+```{r analyze18, eval=FALSE}
+
+              Tabel 7 - Rotated Matrix Component (varimax) 
+
+|    Chi-squared: 97.63  DF: 26    |  **Components**   | Uniquiness        |
+| -------------------------------------------------------------------------|
+|     **Independent Variables**    |   1     |    2    |                   | 
+|:------------------------------------------------------------------------:| 
+| X1 (Corruption Control)          | 0.982   | -0.160  | 0.010             | 
+| X2 (Ethic Firms Behavior)        | 0.911   |    -    | 0.165             | 
+| X3 (Property Rigths)             | 0.853   |    -    | 0.302             | 
+| X4 (Political Stability)         | 0.800   | -0.164  | 0.333             | 
+| X5 (Functioning of government)   | 0.758   | -0.164  | 0.339             | 
+| X6 (Cultural Diversity)          | 0.751   | 0.987   | 0.025             | 
+| X7 (Ethnic Fracionalization)     | -0.203  | 0.760   | 0.395             | 
+| X8 (Linguistic Fracionalization) | -0.203  | 0.707   | 0.497             |
+|:------------------------------------------------------------------------:|
+*Source: By the author (2019)*
+  
+```
+
+```{r analyze19, eval=FALSE}
+
+           Tabel 8 - Mean variation of factors 
+
+|             **N: 127**           | **min** |  **max** |   
+|:-----------------------------------------------------:| 
+| F1 (Institutional Efficiency)    |  -3.70  |   4.37   |
+| F2 (Ethnic-linguistic Plurality) |  -2.87  |   3.32   | 
+|:-----------------------------------------------------:|
+*Source: By the author (2019)*
+
+```
+
+Appendix 2
+================
+
+Dependent variable:
+Y) Civil liberty 1: (fh_cl) categorical dependent variable that measures rights such as freedom of expression and belief, association and organization, force of law, and autonomous individualism without state interference on the particular. The indicator ranges from 1 (very free) to 7 (less free). Models 1 and 3, respectively, contain information for 132 and 51 countries.
+
+Y) Civil liberty 2: (eiu_cl) continuous dependent variable that measures civil liberties from freedom of expression and press; freedom of religion; freedom of assembly and association; and the right to due process. The indicator ranges from 1 to 10, where the freest country receives the maximum score = 10, and the least free the minimum score = 1. Models 2 and 4, respectively, contain information for 132 and 51 countries.
+Independent variables:
+
+i) X1 = trust in the government, it has information for 64 countries and it measures the average trust in the government, the indicator varies from 1 (without trust) to 4 (total trust), data were collected between 2009 and 2014;
+
+ii) X2 = favoritism in official government decisions, has information for 148 countries, measures the extent of government power, the power of government officials to favor companies and individuals in agreements, for example, acting as a circle of influence in making decisions on policies and contracts. The indicator ranges from 1 (always show favoritism) to 7 (never show favoritism), data were collected from 2011 to 2013;
+
+iii) X3 = transparency accountability, has an index composed of 16 indicators that measure transparency in government actions (six of them measure the free undertaking, four for fiscal transparency, and six for political constraints). The base year is 1980, the transparency index had information for 115 countries in 1980, this figure rose to 189 countries by the end of 2010.
+
+iv) X4 = Factor 1 - institutional efficiency
+
+v) X5 = Factor 2 - ethnic-linguistic plurality
+(QOG, Codebok, 2016).
+
+```{r analyze20, eval=FALSE}
+
+        Tabel 8 - Regression Model Variables 
+
+| **Dependent Variable: Civil Liberty 1 - 2**   
+| ---------------------------------------------------|
+| **Independent Variables**  
+|:--------------------------------------------------:| 
+| X1 (Confidence in Government)                      |
+| X2 (Favoritism in Government officials decisions)  |
+| X3 (Accountability)                                |
+| X4 (Institutional Efficiency)                      |
+| X5 (Ethnic-linguistic Plurality)                   |
+|:--------------------------------------------------:|
+*Source: By the author (2019)*
+```  
+
+```{r analyze21, eval=FALSE}
+
+                        Tabel 9 - Descriptive Statistics 
+  
+|                   **VariableS**                   | **Mean** |  min  |  m?x  |                 
+|:-------------------- |------------------------------------------------------:| 
+| X1 (Confidence in Government)                     | 2.25     | 1.68  | 3.32  |
+| X2 (Favoritism in Government officials decisions) | 2.99     | 1.85  | 5.41  |
+| X3 (Accountability)                               | 56       | 11    | 80    |
+| X4 (Institutional Efficiency)                     | -0.40    | -3.70 | 4.37  |
+| X5 (Ethnic-linguistic Plurality)                  | 0.07     | -2.87 | 3.32  |
+|:----------------------------------------------------------------------------:|
+*Source: By the author (2019)*
+
+```
+
+
+
+```{r analyze22, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
+
+# Viewing models 1 to 4
+stargazer(model_0, model_1, model_2, float.env = "sidewaystable", type = "text", title = "Model Results", style = "apsr", align=TRUE, no.space=TRUE, p.auto=FALSE)
+
+```
+
